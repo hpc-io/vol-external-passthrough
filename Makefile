@@ -1,6 +1,7 @@
 #Your HDF5 install path
 #HDF5_DIR=../build_hdf5/hdf5
-HDF5_DIR=../build_parallel_debug/hdf5
+#HDF5_DIR=../build_parallel_debug/hdf5
+HDF5_DIR=${HDF5_ROOT}
 #MPI_DIR=/usr/local
 
 CC=mpicc
@@ -41,6 +42,7 @@ $(EXEXE): $(EXSRC) $(STATLIB) $(DYNLIB)
 
 $(DYNLIB): $(DYNSRC)
 	$(CC) $(CFLAGS) $(DYNLDFLAGS) $^ -o $@
+	cp $(DYNLIB) $(HDF5_ROOT)/../vol/lib
 
 $(STATOBJ): $(STATSRC)
 	$(CC) -c $(CFLAGS) $^ -o $(STATOBJ)
