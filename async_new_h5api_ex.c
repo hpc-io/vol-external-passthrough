@@ -2,8 +2,7 @@
 #include <stdlib.h>
 #include "hdf5.h"
 #include "new_h5api.h"
-#include "H5VLcache_ext.h"
-#include "H5LS.h"
+
 #define H5FILE_NAME     "testfile.h5"
 #define GROUPNAME       "GroupA"
 #define DATASETNAME     "IntArray"
@@ -16,6 +15,9 @@ int main()
     hid_t       file, dataset;          /* file and dataset handles */
     hid_t       group;                  /* group handle */
     hid_t       datatype, dataspace;    /* handles */
+    hid_t       es_id;                  /* event set */
+    size_t      num_in_progress;        /* # of async operations still in progress */
+    hbool_t     op_failed;              /* Whether async operations have failed */
     hsize_t     dimsf[2];               /* dataset dimensions */
     herr_t      status;
     int         data[NX][NY];           /* data to write */
@@ -71,14 +73,15 @@ int main()
      */
     status = H5Dwrite(dataset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
 
+    es_id = H5EScreate();
 
     /* Invoke the new "foo" operation, in the VOL connector */
-    status = H5Dfoo(dataset, H5P_DEFAULT, (int)10, (double)3.14);
+    status = H5Dfoo_async(dataset, H5P_DEFAULT, (int)10, (double)3.14, es_id);
 
     /* Invoke the new "bar" operation, in the VOL connector */
     dval = 0.1;
     uval = 10;
-    status = H5Dbar(dataset, H5P_DEFAULT, &dval, &uval);
+    status = H5Dbar_async(dataset, H5P_DEFAULT, &dval, &uval, es_id);
     printf("dval = %f, uval = %u\n", dval, uval);
 
     /*
@@ -92,7 +95,10 @@ int main()
     group = H5Gcreate2(file, GROUPNAME, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     /* Invoke the new "fiddle" operation, in the VOL connector */
-    status = H5Gfiddle(group, H5P_DEFAULT);
+    status = H5Gfiddle_async(group, H5P_DEFAULT, es_id);
+
+    /* Wait for async "new API" operations to complete */
+    status = H5ESwait(es_id, H5ES_WAIT_FOREVER, &num_in_progress, &op_failed);
 
     /* Close group */
     H5Gclose(group);
@@ -102,4 +108,6 @@ int main()
 
     exit(0);
 }
+
+
 

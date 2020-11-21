@@ -38,11 +38,6 @@ typedef struct H5VL_pass_through_ext_info_t {
 extern "C" {
 #endif
 
-/* New "public" API routines */
-herr_t H5Dfoo(hid_t dset_id, hid_t dxpl_id, void **req, int i, double d);
-herr_t H5Dbar(hid_t dset_id, hid_t dxpl_id, void **req, double *dp, unsigned *up);
-herr_t H5Gfiddle(hid_t group_id, hid_t dxpl_id, void **req);
-
 H5_DLL hid_t H5VL_pass_through_ext_register(void);
 
 #ifdef __cplusplus
