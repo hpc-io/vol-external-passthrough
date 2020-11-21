@@ -10,10 +10,10 @@ AR=ar
 
 DEBUG=-DENABLE_EXT_PASSTHRU_LOGGING -g -O0
 #INCLUDES=-I$(MPI_DIR)/include -I$(HDF5_DIR)/include
-INCLUDES=-I$(HDF5_DIR)/include
+INCLUDES=-I$(HDF5_DIR)/include -I$(HDF5_DIR)/../vol/include
 CFLAGS = $(DEBUG) -fPIC $(INCLUDES) -Wall
 #LIBS=-L$(HDF5_DIR)/lib -L$(MPI_DIR)/lib -lhdf5 -lz
-LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz
+LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz -L$(HDF5_DIR)/../vol/lib -lh5cache_vol
 DYNLDFLAGS = $(DEBUG) -dynamiclib -current_version 1.0 -fPIC $(LIBS)
 STATLDFLAGS = $(DEBUG) -fPIC $(LIBS)
 LDFLAGS = $(DEBUG) $(LIBS)
