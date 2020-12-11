@@ -85,7 +85,7 @@ H5Dfoo(const char *app_file, const char *app_func, unsigned app_line,
     assert(H5VL_new_api_dataset_foo_op_g > 0);
 
     /* Call the VOL dataset optional routine, requesting 'foo' occur */
-    if(H5VLdataset_optional_op_wrap(dset_id, H5VL_new_api_dataset_foo_op_g, dxpl_id, H5ES_NONE, i, d) < 0)
+    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, H5VL_new_api_dataset_foo_op_g, dxpl_id, H5ES_NONE, i, d) < 0)
         return(-1);
 
     return 0;
@@ -114,7 +114,7 @@ H5Dfoo_async(const char *app_file, const char *app_func, unsigned app_line,
     assert(H5VL_new_api_dataset_foo_op_g > 0);
 
     /* Call the VOL dataset optional routine, requesting 'foo' occur */
-    if(H5VLdataset_optional_op_wrap(dset_id, H5VL_new_api_dataset_foo_op_g, dxpl_id, es_id, i, d) < 0)
+    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, H5VL_new_api_dataset_foo_op_g, dxpl_id, es_id, i, d) < 0)
         return(-1);
 
     return 0;
@@ -143,7 +143,7 @@ H5Dbar(const char *app_file, const char *app_func, unsigned app_line,
     assert(H5VL_new_api_dataset_bar_op_g > 0);
 
     /* Call the VOL dataset optional routine, requesting 'bar' occur */
-    if(H5VLdataset_optional_op_wrap(dset_id, H5VL_new_api_dataset_bar_op_g, dxpl_id, H5ES_NONE, dp, up) < 0)
+    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, H5VL_new_api_dataset_bar_op_g, dxpl_id, H5ES_NONE, dp, up) < 0)
         return(-1);
 
     return 0;
@@ -172,7 +172,7 @@ H5Dbar_async(const char *app_file, const char *app_func, unsigned app_line,
     assert(H5VL_new_api_dataset_bar_op_g > 0);
 
     /* Call the VOL dataset optional routine, requesting 'bar' occur */
-    if(H5VLdataset_optional_op_wrap(dset_id, H5VL_new_api_dataset_bar_op_g, dxpl_id, es_id, dp, up) < 0)
+    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, H5VL_new_api_dataset_bar_op_g, dxpl_id, es_id, dp, up) < 0)
         return(-1);
 
     return 0;
@@ -201,7 +201,7 @@ H5Gfiddle(const char *app_file, const char *app_func, unsigned app_line,
     assert(H5VL_new_api_group_fiddle_op_g > 0);
 
     /* Call the VOL group optional routine, requesting 'fiddle' occur */
-    if(H5VLgroup_optional_op_wrap(group_id, H5VL_new_api_group_fiddle_op_g, dxpl_id, H5ES_NONE) < 0)
+    if(H5VLgroup_optional_op_wrap(app_file, app_func, app_line, group_id, H5VL_new_api_group_fiddle_op_g, dxpl_id, H5ES_NONE) < 0)
         return(-1);
 
     return 0;
@@ -230,7 +230,7 @@ H5Gfiddle_async(const char *app_file, const char *app_func, unsigned app_line,
     assert(H5VL_new_api_group_fiddle_op_g > 0);
 
     /* Call the VOL group optional routine, requesting 'fiddle' occur */
-    if(H5VLgroup_optional_op_wrap(group_id, H5VL_new_api_group_fiddle_op_g, dxpl_id, es_id) < 0)
+    if(H5VLgroup_optional_op_wrap(app_file, app_func, app_line, group_id, H5VL_new_api_group_fiddle_op_g, dxpl_id, es_id) < 0)
         return(-1);
 
     return 0;
