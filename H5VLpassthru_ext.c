@@ -168,6 +168,7 @@ static herr_t H5VL_pass_through_ext_object_optional(void *obj, H5VL_object_optio
 
 /* Container/connector introspection callbacks */
 static herr_t H5VL_pass_through_ext_introspect_get_conn_cls(void *obj, H5VL_get_conn_lvl_t lvl, const H5VL_class_t **conn_cls);
+static herr_t H5VL_pass_through_ext_introspect_get_cap_flags(const void *info, unsigned *cap_flags);
 static herr_t H5VL_pass_through_ext_introspect_opt_query(void *obj, H5VL_subclass_t cls, int opt_type, uint64_t *flags);
 
 /* Async request callbacks */
@@ -198,11 +199,11 @@ static herr_t H5VL_pass_through_ext_optional(void *obj, int op_type, hid_t dxpl_
 
 /* Pass through VOL connector class struct */
 static const H5VL_class_t H5VL_pass_through_ext_g = {
-    H5VL_VERSION,                            /* VOL class struct version */
+    H5VL_VERSION,                                       /* VOL class struct version */
     (H5VL_class_value_t)H5VL_PASSTHRU_EXT_VALUE,        /* value        */
     H5VL_PASSTHRU_EXT_NAME,                             /* name         */
     H5VL_PASSTHRU_EXT_VERSION,                          /* connector version */
-    0,                                              /* capability flags */
+    0,                                                  /* capability flags */
     H5VL_pass_through_ext_init,                         /* initialize   */
     H5VL_pass_through_ext_term,                         /* terminate    */
     {                                           /* info_cls */
@@ -281,6 +282,7 @@ static const H5VL_class_t H5VL_pass_through_ext_g = {
     },
     {                                           /* introspect_cls */
         H5VL_pass_through_ext_introspect_get_conn_cls,  /* get_conn_cls */
+        H5VL_pass_through_ext_introspect_get_cap_flags, /* get_cap_flags */
         H5VL_pass_through_ext_introspect_opt_query,     /* opt_query */
     },
     {                                           /* request_cls */
@@ -1724,7 +1726,7 @@ H5VL_pass_through_ext_file_open(const char *name, unsigned flags, hid_t fapl_id,
     H5VL_pass_through_ext_t *file;
     hid_t under_fapl_id;
     void *under;
-    printf("%s:%d: Pass_through VOL is called.\n", __func__, __LINE__);
+
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL FILE Open\n");
 #endif
@@ -2026,7 +2028,7 @@ H5VL_pass_through_ext_group_open(void *obj, const H5VL_loc_params_t *loc_params,
     H5VL_pass_through_ext_t *group;
     H5VL_pass_through_ext_t *o = (H5VL_pass_through_ext_t *)obj;
     void *under;
-    printf("%s:%d: Pass_through VOL is called.\n", __func__, __LINE__);
+
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL GROUP Open\n");
 #endif
@@ -2635,6 +2637,37 @@ H5VL_pass_through_ext_introspect_get_conn_cls(void *obj, H5VL_get_conn_lvl_t lvl
 
     return ret_value;
 } /* end H5VL_pass_through_ext_introspect_get_conn_cls() */
+
+
+/*-------------------------------------------------------------------------
+ * Function:    H5VL_pass_through_ext_introspect_get_cap_flags
+ *
+ * Purpose:     Query the capability flags for this connector and any
+ *              underlying connector(s).
+ *
+ * Return:      SUCCEED / FAIL
+ *
+ *-------------------------------------------------------------------------
+ */
+herr_t
+H5VL_pass_through_ext_introspect_get_cap_flags(const void *_info, unsigned *cap_flags)
+{
+    const H5VL_pass_through_ext_info_t *info = (const H5VL_pass_through_ext_info_t *)_info;
+    herr_t                          ret_value;
+
+#ifdef ENABLE_EXT_PASSTHRU_LOGGING
+    printf("------- EXT PASS THROUGH VOL INTROSPECT GetCapFlags\n");
+#endif
+
+    /* Invoke the query on the underlying VOL connector */
+    ret_value = H5VLintrospect_get_cap_flags(info->under_vol_info, info->under_vol_id, cap_flags);
+
+    /* Bitwise OR our capability flags in */
+    if (ret_value >= 0)
+        *cap_flags |= H5VL_pass_through_ext_g.cap_flags;
+
+    return ret_value;
+} /* end H5VL_pass_through_introspect_ext_get_cap_flags() */
 
 
 /*-------------------------------------------------------------------------
