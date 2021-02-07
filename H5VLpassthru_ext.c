@@ -1258,8 +1258,12 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Write\n");
 #endif
+    void *req_t = NULL;
 
-    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req_t);
+
+    H5VL_request_status_t status;
+    ret_value = H5VLrequest_wait(req_t, o->under_vol_id, 10000000000, &status);
 
     /* Check for async request */
     if(req && *req)
