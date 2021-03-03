@@ -44,7 +44,7 @@
 
 /* The header with the dynamic names for the new API routines */
 #include "new_h5api.h"
-
+#include <unistd.h>
 
 /**********/
 /* Macros */
@@ -681,6 +681,7 @@ H5VL_pass_through_ext_str_to_info(const char *str, void **_info)
     /* Retrieve the underlying VOL connector value and info */
     sscanf(str, "under_vol=%u;", &under_vol_value);
     under_vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
+    printf("under_vol_value, under_vol_id: %u, %lld \n", under_vol_value, under_vol_id); 
     under_vol_info_start = strchr(str, '{');
     under_vol_info_end = strrchr(str, '}');
     assert(under_vol_info_end > under_vol_info_start);
@@ -1259,13 +1260,14 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
     printf("------- EXT PASS THROUGH VOL DATASET Write\n");
 #endif
     void *req_t = NULL;
-
+    double t0  = MPI_Wtime(); 
     ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req_t);
-
+    double t1 = MPI_Wtime(); 
     H5VL_request_status_t status;
     ret_value = H5VLrequest_wait(req_t, o->under_vol_id, 10000000000, &status);
-
-    /* Check for async request */
+    double t2 = MPI_Wtime();
+    printf("%f, %f\n", t1 -t0, t2-t1);
+     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
 
@@ -2802,96 +2804,15 @@ static herr_t
 H5VL_pass_through_ext_request_specific(void *obj, H5VL_request_specific_t specific_type,
     va_list arguments)
 {
+    H5VL_pass_through_ext_t *o = (H5VL_pass_through_ext_t *)obj;
     herr_t ret_value = -1;
 
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL REQUEST Specific\n");
 #endif
 
-    if(H5VL_REQUEST_WAITANY == specific_type ||
-            H5VL_REQUEST_WAITSOME == specific_type ||
-            H5VL_REQUEST_WAITALL == specific_type) {
-        va_list tmp_arguments;
-        size_t req_count;
 
-        /* Sanity check */
-        assert(obj == NULL);
-
-        /* Get enough info to call the underlying connector */
-        va_copy(tmp_arguments, arguments);
-        req_count = va_arg(tmp_arguments, size_t);
-
-        /* Can only use a request to invoke the underlying VOL connector when there's >0 requests */
-        if(req_count > 0) {
-            void **req_array;
-            void **under_req_array;
-            uint64_t timeout;
-            H5VL_pass_through_ext_t *o;
-            size_t u;               /* Local index variable */
-
-            /* Get the request array */
-            req_array = va_arg(tmp_arguments, void **);
-
-            /* Get a request to use for determining the underlying VOL connector */
-            o = (H5VL_pass_through_ext_t *)req_array[0];
-
-            /* Create array of underlying VOL requests */
-            under_req_array = (void **)malloc(req_count * sizeof(void **));
-            for(u = 0; u < req_count; u++)
-                under_req_array[u] = ((H5VL_pass_through_ext_t *)req_array[u])->under_object;
-
-            /* Remove the timeout value from the vararg list (it's used in all the calls below) */
-            timeout = va_arg(tmp_arguments, uint64_t);
-
-            /* Release requests that have completed */
-            if(H5VL_REQUEST_WAITANY == specific_type) {
-                size_t *idx;          /* Pointer to the index of completed request */
-                H5VL_request_status_t *status;  /* Pointer to the request's status */
-
-                /* Retrieve the remaining arguments */
-                idx = va_arg(tmp_arguments, size_t *);
-                assert(*idx <= req_count);
-                status = va_arg(tmp_arguments, H5VL_request_status_t *);
-
-                /* Reissue the WAITANY 'request specific' call */
-                ret_value = H5VLrequest_specific_vararg(o->under_object, o->under_vol_id, specific_type, req_count, under_req_array, timeout, idx, status);
-            } /* end if */
-            else if(H5VL_REQUEST_WAITSOME == specific_type) {
-                size_t *outcount;               /* # of completed requests */
-                unsigned *array_of_indices;     /* Array of indices for completed requests */
-                H5VL_request_status_t *array_of_statuses; /* Array of statuses for completed requests */
-
-                /* Retrieve the remaining arguments */
-                outcount = va_arg(tmp_arguments, size_t *);
-                assert(*outcount <= req_count);
-                array_of_indices = va_arg(tmp_arguments, unsigned *);
-                array_of_statuses = va_arg(tmp_arguments, H5VL_request_status_t *);
-
-                /* Reissue the WAITSOME 'request specific' call */
-                ret_value = H5VLrequest_specific_vararg(o->under_object, o->under_vol_id, specific_type, req_count, under_req_array, timeout, outcount, array_of_indices, array_of_statuses);
-            } /* end else-if */
-            else {      /* H5VL_REQUEST_WAITALL == specific_type */
-                H5VL_request_status_t *array_of_statuses; /* Array of statuses for completed requests */
-
-                /* Retrieve the remaining arguments */
-                array_of_statuses = va_arg(tmp_arguments, H5VL_request_status_t *);
-
-                /* Reissue the WAITALL 'request specific' call */
-                ret_value = H5VLrequest_specific_vararg(o->under_object, o->under_vol_id, specific_type, req_count, under_req_array, timeout, array_of_statuses);
-            } /* end else */
-
-            /* Release array of requests for underlying connector */
-            free(under_req_array);
-        } /* end if */
-
-        /* Finish use of copied vararg list */
-        va_end(tmp_arguments);
-    } /* end if */
-    else {
-        H5VL_pass_through_ext_t *o = (H5VL_pass_through_ext_t *)obj;
-
-        ret_value = H5VLrequest_specific(o->under_object, o->under_vol_id, specific_type, arguments);
-    } /* end else */
+    ret_value = H5VLrequest_specific(o->under_object, o->under_vol_id, specific_type, arguments);
 
     return ret_value;
 } /* end H5VL_pass_through_ext_request_specific() */

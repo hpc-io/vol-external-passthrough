@@ -18,7 +18,7 @@ Change following paths in Makefile:
 - **SRC_DIR**: path to this VOL connector source code directory.
 
 ### Build the pass-through VOL library and run the demo
-Type *make* in the source dir and you'll see **libh5passthrough_vol.so**, which is the pass -hrough VOL connector library.
+Type *make* in the source dir and you'll see **libh5passthrough_vol.so**, which is the pass-through VOL connector library.
 To run the demo, set following environment variables first:
 >
     export HDF5_PLUGIN_PATH=PATH_TO_YOUR_pass_through_vol
