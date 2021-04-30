@@ -17,8 +17,9 @@
 #ifndef _new_h5api_H
 #define _new_h5api_H
 
-/* Include HDF5 header file */
+/* Include HDF5 header files */
 #include "hdf5.h"
+#include "hdf5dev.h"
 
 /* Names for dynamically registered operations */
 #define H5VL_PASSTHRU_EXT_DYN_FOO        "org.example.ext_passthru.foo"
