@@ -13,15 +13,14 @@ DEBUG=-DENABLE_EXT_PASSTHRU_LOGGING -g -O0
 INCLUDES=-I$(HDF5_DIR)/include -I$(HDF5_DIR)/../vol/include
 CFLAGS = $(DEBUG) -fPIC $(INCLUDES) -Wall
 #LIBS=-L$(HDF5_DIR)/lib -L$(MPI_DIR)/lib -lhdf5 -lz
-LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz -L$(HDF5_DIR)/../vol/lib -lh5cache_vol
-DYNLDFLAGS = $(DEBUG) -dynamiclib -current_version 1.0 -fPIC $(LIBS)
+LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz 
+DYNLDFLAGS = $(DEBUG) -fPIC $(LIBS)
 LDFLAGS = $(DEBUG) $(LIBS)
 ARFLAGS = rs
 
 DYNSRC = H5VLpassthru_ext.c
 DYNOBJ = $(DYNSRC:.c=.o)
-DYNLIB = libh5passthrough_vol.dylib
-DYNDBG = libh5passthrough_vol.dylib.dSYM
+DYNLIB = libh5passthrough_vol.so
 
 STATSRC = new_h5api.c
 STATOBJ = $(STATSRC:.c=.o)

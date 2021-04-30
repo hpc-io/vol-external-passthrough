@@ -683,7 +683,7 @@ H5VL_pass_through_ext_str_to_info(const char *str, void **_info)
     /* Retrieve the underlying VOL connector value and info */
     sscanf(str, "under_vol=%u;", &under_vol_value);
     under_vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
-    printf("under_vol_value, under_vol_id: %u, %lld \n", under_vol_value, under_vol_id); 
+
     under_vol_info_start = strchr(str, '{');
     under_vol_info_end = strrchr(str, '}');
     assert(under_vol_info_end > under_vol_info_start);

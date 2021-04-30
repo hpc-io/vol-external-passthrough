@@ -16,7 +16,7 @@
 
 #ifndef _H5VLpassthru_ext_H
 #define _H5VLpassthru_ext_H
-
+#include "hdf5dev.h"
 /* Public headers needed by this file */
 #include "H5VLpublic.h"        /* Virtual Object Layer                 */
 
