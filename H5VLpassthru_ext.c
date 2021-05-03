@@ -1269,6 +1269,7 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
     ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
     ret_value = H5VLdataset_write(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
 
+    /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
 
