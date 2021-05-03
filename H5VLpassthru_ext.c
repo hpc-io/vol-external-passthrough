@@ -1702,18 +1702,22 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     strcat(tmp, "-map");
     under = H5VLfile_create(name, flags, fcpl_id, under_fapl_id, dxpl_id, req);
 
-    // get default fapl_id calling native 
-    hid_t fapl_id_default = H5Pcopy(fapl_id);
+    // get default fapl_id calling native
+    
+    //hid_t fapl_id_default = H5Pcopy(fapl_id);
+    hid_t fapl_id_default = H5Pcreate(H5P_FILE_ACCESS);
+
     unsigned int under_vol_value = H5VL_NATIVE_VALUE;
-    hid_t under_vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
+    //hid_t under_vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
+    hid_t under_vol_id = H5VLget_connector_id_by_value(under_vol_value);
     void *p = NULL;
     H5Pset_vol(fapl_id_default, under_vol_id, p);
-    
+
     void *under2 = H5VLfile_create(tmp, flags, fcpl_id, fapl_id_default, dxpl_id, req);
 
     if(under && under2) {
         file = H5VL_pass_through_ext_new_obj(under, info->under_vol_id);
-	file->map = H5VL_pass_through_ext_new_obj(under2, under_vol_id);
+	file->map = H5VL_pass_through_ext_new_obj(under2, H5VL_NATIVE);
         /* Check for async request */
         if(req && *req)
             *req = H5VL_pass_through_ext_new_obj(*req, info->under_vol_id);
