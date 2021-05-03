@@ -57,6 +57,14 @@ $(STATLIB): $(STATOBJ)
 	$(AR) $(ARFLAGS) $@ $^
 test_dataset: test_dataset.o 
 	$(CC) -o test_dataset test_dataset.o -L$(HDF5_ROOT)/lib -lhdf5
+
+test_file: test_file.o 
+	$(CC) -o test_file test_file.o -L$(HDF5_ROOT)/lib -lhdf5
+
+
+test_group: test_group.o 
+	$(CC) -o test_group test_group.o -L$(HDF5_ROOT)/lib -lhdf5
+
 .PHONY: clean all
 clean:
 	rm -rf $(DYNOBJ) $(DYNLIB) $(DYNDBG) \
