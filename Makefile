@@ -20,7 +20,7 @@ ARFLAGS = rs
 
 DYNSRC = H5VLpassthru_ext.c
 DYNOBJ = $(DYNSRC:.c=.o)
-DYNLIB = libh5passthrough_vol.so
+DYNLIB = libh5passthrough_vol.dylib
 
 STATSRC = new_h5api.c
 STATOBJ = $(STATSRC:.c=.o)
@@ -47,7 +47,7 @@ $(ASYNC_EXEXE): $(ASYNC_EXSRC) $(STATLIB) $(DYNLIB)
 	$(CC) $(CFLAGS) $^ -o $(ASYNC_EXEXE) $(LDFLAGS) -L. -lnew_h5api
 
 $(DYNLIB): $(DYNSRC)
-	$(CC) $(CFLAGS) $(DYNLDFLAGS) $^ -o $@
+	$(CC) -shared $(CFLAGS) $(DYNLDFLAGS) $^ -o $@
 	cp $(DYNLIB) $(HDF5_ROOT)/../vol/lib
 
 $(STATOBJ): $(STATSRC)
