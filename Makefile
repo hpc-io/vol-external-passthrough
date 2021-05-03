@@ -58,6 +58,9 @@ $(STATLIB): $(STATOBJ)
 test_dataset: test_dataset.o 
 	$(CC) -o test_dataset test_dataset.o -L$(HDF5_ROOT)/lib -lhdf5
 
+test_dataset_empty: test_dataset_empty.o 
+	$(CC) -o test_dataset_empty test_dataset_empty.o -L$(HDF5_ROOT)/lib -lhdf5
+
 test_file: test_file.o 
 	$(CC) -o test_file test_file.o -L$(HDF5_ROOT)/lib -lhdf5
 

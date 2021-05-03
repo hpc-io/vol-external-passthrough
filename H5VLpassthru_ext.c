@@ -1265,16 +1265,10 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Write\n");
 #endif
-    //void *req_t = NULL;
-    //double t0  = MPI_Wtime(); 
+
     ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
     ret_value = H5VLdataset_write(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-    //double t1 = MPI_Wtime(); 
-    //H5VL_request_status_t status;
-    //ret_value = H5VLrequest_wait(req_t, o->under_vol_id, 10000000000, &status);
-    //double t2 = MPI_Wtime();
-    //printf("%f, %f\n", t1 -t0, t2-t1);
-     /* Check for async request */
+
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
 
