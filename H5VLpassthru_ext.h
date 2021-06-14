@@ -23,10 +23,10 @@
 /* Identifier for the pass-through VOL connector */
 #define H5VL_PASSTHRU_EXT	(H5VL_pass_through_ext_register())
 
-/* Characteristics of the pass-through VOL connector */
+/* Public characteristics of the pass-through VOL connector */
 #define H5VL_PASSTHRU_EXT_NAME        "pass_through_ext"
 #define H5VL_PASSTHRU_EXT_VALUE       517           /* VOL connector ID */
-#define H5VL_PASSTHRU_EXT_VERSION     0
+
 /* Pass-through VOL connector info */
 typedef struct H5VL_pass_through_ext_info_t {
     hid_t under_vol_id;         /* VOL ID for under VOL */
@@ -38,7 +38,8 @@ typedef struct H5VL_pass_through_ext_info_t {
 extern "C" {
 #endif
 
-H5_DLL hid_t H5VL_pass_through_ext_register(void);
+/* Technically a private function call, but prototype must be declared here */
+extern hid_t H5VL_pass_through_ext_register(void);
 
 #ifdef __cplusplus
 }

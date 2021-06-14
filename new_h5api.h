@@ -21,10 +21,6 @@
 #include "hdf5.h"
 #include "hdf5dev.h"
 
-/* Names for dynamically registered operations */
-#define H5VL_PASSTHRU_EXT_DYN_FOO        "org.example.ext_passthru.foo"
-#define H5VL_PASSTHRU_EXT_DYN_BAR        "org.example.ext_passthru.bar"
-#define H5VL_PASSTHRU_EXT_DYN_FIDDLE     "org.example.ext_passthru.fiddle"
 
 #ifdef __cplusplus
 extern "C" {

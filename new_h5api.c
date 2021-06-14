@@ -21,8 +21,11 @@
 /* Define macro that can be check in header file, to disable "user" macros" */
 #define NEW_H5API_IMPL
 
-/* The header with the dynamic names for the new API routines */
+/* Public prototypes for the new API routines, etc. */
 #include "new_h5api.h"
+
+/* This connector's private header */
+#include "H5VLpassthru_ext_private.h"
 
 
 /* Operation values for new "API" routines */
@@ -78,14 +81,23 @@ herr_t
 H5Dfoo(const char *app_file, const char *app_func, unsigned app_line,
     hid_t dset_id, hid_t dxpl_id, int i, double d)
 {
+    H5VL_optional_args_t vol_cb_args;                   /* Wrapper for invoking optional operation */
+    H5VL_passthru_ext_dataset_foo_args_t foo_args;      /* Parameters for 'foo' operation */
+
     /* Set up the operation value, if it hasn't already been retrieved */
     if(-1 == H5VL_new_api_dataset_foo_op_g)
         if(ext_passthru_setup() < 0)
             return(-1);
     assert(H5VL_new_api_dataset_foo_op_g > 0);
 
+    /* Set up args for invoking optional callback */
+    foo_args.i = i;
+    foo_args.d = d;
+    vol_cb_args.op_type = H5VL_new_api_dataset_foo_op_g;
+    vol_cb_args.args = &foo_args;
+
     /* Call the VOL dataset optional routine, requesting 'foo' occur */
-    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, H5VL_new_api_dataset_foo_op_g, dxpl_id, H5ES_NONE, i, d) < 0)
+    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, &vol_cb_args, dxpl_id, H5ES_NONE) < 0)
         return(-1);
 
     return 0;
@@ -107,14 +119,23 @@ herr_t
 H5Dfoo_async(const char *app_file, const char *app_func, unsigned app_line,
     hid_t dset_id, hid_t dxpl_id, int i, double d, hid_t es_id)
 {
+    H5VL_optional_args_t vol_cb_args;                   /* Wrapper for invoking optional operation */
+    H5VL_passthru_ext_dataset_foo_args_t foo_args;      /* Parameters for 'foo' operation */
+
     /* Set up the operation value, if it hasn't already been retrieved */
     if(-1 == H5VL_new_api_dataset_foo_op_g)
         if(ext_passthru_setup() < 0)
             return(-1);
     assert(H5VL_new_api_dataset_foo_op_g > 0);
 
+    /* Set up args for invoking optional callback */
+    foo_args.i = i;
+    foo_args.d = d;
+    vol_cb_args.op_type = H5VL_new_api_dataset_foo_op_g;
+    vol_cb_args.args = &foo_args;
+
     /* Call the VOL dataset optional routine, requesting 'foo' occur */
-    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, H5VL_new_api_dataset_foo_op_g, dxpl_id, es_id, i, d) < 0)
+    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, &vol_cb_args, dxpl_id, es_id) < 0)
         return(-1);
 
     return 0;
@@ -136,14 +157,23 @@ herr_t
 H5Dbar(const char *app_file, const char *app_func, unsigned app_line,
     hid_t dset_id, hid_t dxpl_id, double *dp, unsigned *up)
 {
+    H5VL_optional_args_t vol_cb_args;                   /* Wrapper for invoking optional operation */
+    H5VL_passthru_ext_dataset_bar_args_t bar_args;      /* Parameters for 'bar' operation */
+
     /* Set up the operation value, if it hasn't already been retrieved */
     if(-1 == H5VL_new_api_dataset_bar_op_g)
         if(ext_passthru_setup() < 0)
             return(-1);
     assert(H5VL_new_api_dataset_bar_op_g > 0);
 
+    /* Set up args for invoking optional callback */
+    bar_args.dp = dp;
+    bar_args.up = up;
+    vol_cb_args.op_type = H5VL_new_api_dataset_bar_op_g;
+    vol_cb_args.args = &bar_args;
+
     /* Call the VOL dataset optional routine, requesting 'bar' occur */
-    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, H5VL_new_api_dataset_bar_op_g, dxpl_id, H5ES_NONE, dp, up) < 0)
+    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, &vol_cb_args, dxpl_id, H5ES_NONE) < 0)
         return(-1);
 
     return 0;
@@ -165,14 +195,23 @@ herr_t
 H5Dbar_async(const char *app_file, const char *app_func, unsigned app_line,
     hid_t dset_id, hid_t dxpl_id, double *dp, unsigned *up, hid_t es_id)
 {
+    H5VL_optional_args_t vol_cb_args;                   /* Wrapper for invoking optional operation */
+    H5VL_passthru_ext_dataset_bar_args_t bar_args;      /* Parameters for 'bar' operation */
+
     /* Set up the operation value, if it hasn't already been retrieved */
     if(-1 == H5VL_new_api_dataset_bar_op_g)
         if(ext_passthru_setup() < 0)
             return(-1);
     assert(H5VL_new_api_dataset_bar_op_g > 0);
 
+    /* Set up args for invoking optional callback */
+    bar_args.dp = dp;
+    bar_args.up = up;
+    vol_cb_args.op_type = H5VL_new_api_dataset_bar_op_g;
+    vol_cb_args.args = &bar_args;
+
     /* Call the VOL dataset optional routine, requesting 'bar' occur */
-    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, H5VL_new_api_dataset_bar_op_g, dxpl_id, es_id, dp, up) < 0)
+    if(H5VLdataset_optional_op_wrap(app_file, app_func, app_line, dset_id, &vol_cb_args, dxpl_id, es_id) < 0)
         return(-1);
 
     return 0;
@@ -194,14 +233,20 @@ herr_t
 H5Gfiddle(const char *app_file, const char *app_func, unsigned app_line,
     hid_t group_id, hid_t dxpl_id)
 {
+    H5VL_optional_args_t vol_cb_args;                   /* Wrapper for invoking optional operation */
+
     /* Set up the operation value, if it hasn't already been retrieved */
     if(-1 == H5VL_new_api_group_fiddle_op_g)
         if(ext_passthru_setup() < 0)
             return(-1);
     assert(H5VL_new_api_group_fiddle_op_g > 0);
 
+    /* Set up args for invoking optional callback */
+    vol_cb_args.op_type = H5VL_new_api_group_fiddle_op_g;
+    vol_cb_args.args = NULL;
+
     /* Call the VOL group optional routine, requesting 'fiddle' occur */
-    if(H5VLgroup_optional_op_wrap(app_file, app_func, app_line, group_id, H5VL_new_api_group_fiddle_op_g, dxpl_id, H5ES_NONE) < 0)
+    if(H5VLgroup_optional_op_wrap(app_file, app_func, app_line, group_id, &vol_cb_args, dxpl_id, H5ES_NONE) < 0)
         return(-1);
 
     return 0;
@@ -223,14 +268,20 @@ herr_t
 H5Gfiddle_async(const char *app_file, const char *app_func, unsigned app_line,
     hid_t group_id, hid_t dxpl_id, hid_t es_id)
 {
+    H5VL_optional_args_t vol_cb_args;                   /* Wrapper for invoking optional operation */
+
     /* Set up the operation value, if it hasn't already been retrieved */
     if(-1 == H5VL_new_api_group_fiddle_op_g)
         if(ext_passthru_setup() < 0)
             return(-1);
     assert(H5VL_new_api_group_fiddle_op_g > 0);
 
+    /* Set up args for invoking optional callback */
+    vol_cb_args.op_type = H5VL_new_api_group_fiddle_op_g;
+    vol_cb_args.args = NULL;
+
     /* Call the VOL group optional routine, requesting 'fiddle' occur */
-    if(H5VLgroup_optional_op_wrap(app_file, app_func, app_line, group_id, H5VL_new_api_group_fiddle_op_g, dxpl_id, es_id) < 0)
+    if(H5VLgroup_optional_op_wrap(app_file, app_func, app_line, group_id, &vol_cb_args, dxpl_id, es_id) < 0)
         return(-1);
 
     return 0;

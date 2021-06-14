@@ -13,13 +13,18 @@ DEBUG=-DENABLE_EXT_PASSTHRU_LOGGING -g -O0
 INCLUDES=-I$(HDF5_DIR)/include -I$(HDF5_DIR)/../vol/include
 CFLAGS = $(DEBUG) -fPIC $(INCLUDES) -Wall
 #LIBS=-L$(HDF5_DIR)/lib -L$(MPI_DIR)/lib -lhdf5 -lz
+
 LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz 
-DYNLDFLAGS = $(DEBUG) -fPIC $(LIBS)
+DYNLDFLAGS = $(DEBUG) -fPIC -shared $(LIBS)
+#DYNLDFLAGS = $(DEBUG) -dynamiclib -current_version 1.0 -fPIC $(LIBS)
 LDFLAGS = $(DEBUG) $(LIBS)
 ARFLAGS = rs
 
 DYNSRC = H5VLpassthru_ext.c
 DYNOBJ = $(DYNSRC:.c=.o)
+# Uncomment this line Linux builds:
+# DYNLIB = libh5passthrough_vol.so
+# Uncomment this line MacOS builds:
 DYNLIB = libh5passthrough_vol.dylib
 
 STATSRC = new_h5api.c
@@ -48,7 +53,7 @@ $(ASYNC_EXEXE): $(ASYNC_EXSRC) $(STATLIB) $(DYNLIB)
 
 $(DYNLIB): $(DYNSRC)
 	$(CC) -shared $(CFLAGS) $(DYNLDFLAGS) $^ -o $@
-	cp $(DYNLIB) $(HDF5_ROOT)/../vol/lib
+	cp $(DYNLIB) $(HDF5_VOL_DIR)/lib
 
 $(STATOBJ): $(STATSRC)
 	$(CC) -c $(CFLAGS) $^ -o $(STATOBJ)
