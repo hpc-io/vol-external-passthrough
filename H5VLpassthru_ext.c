@@ -1157,7 +1157,6 @@ H5VL_pass_through_ext_dataset_create(void *obj, const H5VL_loc_params_t *loc_par
 #endif
 
     under = H5VLdataset_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, type_id, space_id, dcpl_id,  dapl_id, dxpl_id, req);
-    H5Pset_plugin_new_api_context(dxpl_id, TRUE);
     void *under2 = H5VLdataset_create(m->under_object, loc_params, m->under_vol_id, name, lcpl_id, type_id, space_id, dcpl_id,  dapl_id, dxpl_id, req);
     if(under && under2) {
         dset = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
@@ -1706,10 +1705,9 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     hid_t under_vol_id = H5VLget_connector_id_by_value(under_vol_value);
     void *p = NULL;
     H5Pset_vol(fapl_id_default, under_vol_id, p);
-
-    if (H5Pset_plugin_new_api_context(dxpl_id, TRUE) < 0)
-      printf("STACK ERROR\n");
-    void *under2 = H5VLfile_create(tmp, flags, fcpl_id, fapl_id_default, dxpl_id, req);
+    hid_t xpl = H5Pcreate(H5P_DATASET_XFER); 
+    H5Pset_plugin_new_api_context(xpl, TRUE);
+    void *under2 = H5VLfile_create(tmp, flags, fcpl_id, fapl_id_default, xpl, req);
 
     if(under && under2) {
         file = H5VL_pass_through_ext_new_obj(under, info->under_vol_id);
@@ -2038,7 +2036,7 @@ H5VL_pass_through_ext_group_create(void *obj, const H5VL_loc_params_t *loc_param
 #endif
 
     under = H5VLgroup_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, req);
-    H5Pset_plugin_new_api_context(dxpl_id, TRUE);
+    //H5Pset_plugin_new_api_context(dxpl_id, TRUE);
     void *under2 = H5VLgroup_create(m->under_object, loc_params, m->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, req);
     if(under && under2) {
         group = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
