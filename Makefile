@@ -14,7 +14,7 @@ INCLUDES=-I$(HDF5_DIR)/include -I$(HDF5_DIR)/../vol/include
 CFLAGS = $(DEBUG) -fPIC $(INCLUDES) -Wall
 #LIBS=-L$(HDF5_DIR)/lib -L$(MPI_DIR)/lib -lhdf5 -lz
 
-LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz 
+LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz -L$(HDF5_VOL_DIR)/lib -lh5async
 DYNLDFLAGS = $(DEBUG) -fPIC -shared $(LIBS)
 #DYNLDFLAGS = $(DEBUG) -dynamiclib -current_version 1.0 -fPIC $(LIBS)
 LDFLAGS = $(DEBUG) $(LIBS)
@@ -61,17 +61,17 @@ $(STATOBJ): $(STATSRC)
 $(STATLIB): $(STATOBJ)
 	$(AR) $(ARFLAGS) $@ $^
 test_dataset: test_dataset.o 
-	$(CC) -o test_dataset test_dataset.o -L$(HDF5_ROOT)/lib -lhdf5
+	$(CC) -o test_dataset test_dataset.o $(LIBS)
 
 test_dataset_empty: test_dataset_empty.o 
 	$(CC) -o test_dataset_empty test_dataset_empty.o -L$(HDF5_ROOT)/lib -lhdf5
 
 test_file: test_file.o 
-	$(CC) -o test_file test_file.o -L$(HDF5_ROOT)/lib -lhdf5
+	$(CC) -o test_file test_file.o $(LIBS)
 
 
 test_group: test_group.o 
-	$(CC) -o test_group test_group.o -L$(HDF5_ROOT)/lib -lhdf5
+	$(CC) -o test_group test_group.o $(LIBS)
 
 .PHONY: clean all
 clean:

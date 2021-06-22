@@ -10,6 +10,9 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
+void int2char(int a, char str[255]) {
+  sprintf(str, "%d", a);
+}
 
 
 int main(int argc, char **argv) {
@@ -51,11 +54,21 @@ int main(int argc, char **argv) {
 
   hsize_t count[2] = {1, 1};
   hid_t file_id = H5Fcreate(f, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
-  hid_t grp_id = H5Gcreate(file_id, "group_test", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  hid_t dset = H5Dcreate(grp_id, "dset_test", H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  hid_t status = H5Dwrite(dset, H5T_NATIVE_INT, memspace, filespace, dxf_id, data); // write memory to file
-  H5Dclose(dset); 
-  H5Gclose(grp_id);
+  int niter = 4;
+  offset[0]= rank*ldims[0];
+  H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, ldims, count);
+  char str[255];
+  for(int it=0; it<niter; it++) {
+    int2char(it, str);
+    hid_t grp_id = H5Gcreate(file_id, str, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t dset = H5Dcreate(grp_id, "dset_test", H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t dset2 = H5Dcreate(grp_id, "dset_test2", H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t status = H5Dwrite(dset, H5T_NATIVE_INT, memspace, filespace, dxf_id, data); // write memory to file
+    hid_t status2 = H5Dwrite(dset2, H5T_NATIVE_INT, memspace, filespace, dxf_id, data); // write memory to file
+    H5Dclose(dset);
+    H5Dclose(dset2); 
+    H5Gclose(grp_id);
+  }
   H5Fflush(file_id, H5F_SCOPE_LOCAL);
   H5Fclose(file_id);
   MPI_Finalize();

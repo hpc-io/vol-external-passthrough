@@ -39,7 +39,8 @@
 /* Public HDF5 headers */
 #include "hdf5.h"
 #include "hdf5dev.h"
-
+#include "h5_async_lib.h"
+#include "h5_async_vol.h"
 /* This connector's private header */
 #include "H5VLpassthru_ext_private.h"
 #define TRUE true
@@ -67,7 +68,8 @@ typedef struct H5VL_pass_through_ext_t {
     hid_t  under_vol_id;        /* ID for underlying VOL connector */
     void   *under_object;       /* Info object for underlying VOL connector */
     void   *parent;
-    void   *map; 
+    void   *map;
+    hid_t  es_id; 
 } H5VL_pass_through_ext_t;
 
 /* The pass through VOL wrapper context */
@@ -1161,7 +1163,8 @@ H5VL_pass_through_ext_dataset_create(void *obj, const H5VL_loc_params_t *loc_par
     if(under && under2) {
         dset = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
 	dset->map = H5VL_pass_through_ext_new_obj(under2, m->under_vol_id);
-	dset->parent = obj; 
+	dset->parent = obj;
+	dset->es_id = H5EScreate();
         /* Check for async request */
         if(req && *req)
             *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
@@ -1262,10 +1265,21 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Write\n");
 #endif
+    hid_t xpl = H5Pcreate(H5P_DATASET_XFER);
+    //hid_t xpl = H5Pcopy(plist_id);
+    H5Pset_plugin_new_api_context(xpl, TRUE);
+    void *req1=NULL;
+    void *req2=NULL; 
+    ret_value = H5VLdataset_write(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, req); // writing data to the cache 
 
-    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
-    ret_value = H5VLdataset_write(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+    ret_value = H5VLdataset_read(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, &req1); // reading data from the cache
 
+    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req2); // writing data to the parallel file system. 
+    H5VL_async_set_request_dep(req2, req1);
+    H5ESinsert_request(o->es_id, o->under_vol_id, &req2);
+    H5VL_request_status_t *status;
+    
+    H5VLrequest_wait(req2, o->under_vol_id, UINT64_MAX, status); 
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
@@ -1697,9 +1711,9 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
 
     // get default fapl_id calling native
     
-    //hid_t fapl_id_default = H5Pcopy(fapl_id);
-    hid_t fapl_id_default = H5Pcreate(H5P_FILE_ACCESS);
-
+    hid_t fapl_id_default = H5Pcopy(fapl_id);
+    //hid_t fapl_id_default = H5Pcreate(H5P_FILE_ACCESS);
+    
     unsigned int under_vol_value = H5VL_NATIVE_VALUE;
     //hid_t under_vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
     hid_t under_vol_id = H5VLget_connector_id_by_value(under_vol_value);
