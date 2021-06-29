@@ -45,16 +45,19 @@ int main(int argc, char **argv) {
   hid_t memspace = H5Screate_simple(2, ldims, NULL);
   // define local data
   int* data = (int*)malloc(ldims[0]*ldims[1]*sizeof(int));
-  // set up dataset access property list 
+  // set up dataset access property list
+  for(int i=0; i<ldims[0]*ldims[1]; i++)
+    data[i] = rank+1; 
   hid_t dxf_id = H5Pcreate(H5P_DATASET_XFER);
-  H5Pset_dxpl_mpio(dxf_id, H5FD_MPIO_COLLECTIVE);
+  herr_t ret = H5Pset_dxpl_mpio(dxf_id, H5FD_MPIO_COLLECTIVE);
+  printf("set dxpl: %d\n",ret);
   
   hid_t filespace = H5Screate_simple(2, gdims, NULL);
   hid_t dt = H5Tcopy(H5T_NATIVE_INT);
 
   hsize_t count[2] = {1, 1};
   hid_t file_id = H5Fcreate(f, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
-  int niter = 4;
+  int niter = 1;
   offset[0]= rank*ldims[0];
   H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, ldims, count);
   char str[255];
@@ -62,15 +65,18 @@ int main(int argc, char **argv) {
     int2char(it, str);
     hid_t grp_id = H5Gcreate(file_id, str, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     hid_t dset = H5Dcreate(grp_id, "dset_test", H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    hid_t dset2 = H5Dcreate(grp_id, "dset_test2", H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    //hid_t dset2 = H5Dcreate(grp_id, "dset_test2", H5T_NATIVE_INT, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     hid_t status = H5Dwrite(dset, H5T_NATIVE_INT, memspace, filespace, dxf_id, data); // write memory to file
-    hid_t status2 = H5Dwrite(dset2, H5T_NATIVE_INT, memspace, filespace, dxf_id, data); // write memory to file
+    //hid_t status2 = H5Dwrite(dset2, H5T_NATIVE_INT, memspace, filespace, dxf_id, data); // write memory to file
     H5Dclose(dset);
-    H5Dclose(dset2); 
+    //H5Dclose(dset2); 
     H5Gclose(grp_id);
   }
   H5Fflush(file_id, H5F_SCOPE_LOCAL);
   H5Fclose(file_id);
+  H5Pclose(dxf_id);
+  H5Sclose(filespace);
+  H5Sclose(memspace); 
   MPI_Finalize();
   return 0;
 }

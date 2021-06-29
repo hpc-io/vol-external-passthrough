@@ -1159,12 +1159,12 @@ H5VL_pass_through_ext_dataset_create(void *obj, const H5VL_loc_params_t *loc_par
 #endif
 
     under = H5VLdataset_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, type_id, space_id, dcpl_id,  dapl_id, dxpl_id, req);
-    void *under2 = H5VLdataset_create(m->under_object, loc_params, m->under_vol_id, name, lcpl_id, type_id, space_id, dcpl_id,  dapl_id, dxpl_id, req);
+    void *under2 = H5VLdataset_create(m->under_object, loc_params, m->under_vol_id, name, lcpl_id, type_id, space_id, dcpl_id,  dapl_id, dxpl_id, NULL);
     if(under && under2) {
         dset = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
 	dset->map = H5VL_pass_through_ext_new_obj(under2, m->under_vol_id);
 	dset->parent = obj;
-	dset->es_id = H5EScreate();
+	//dset->es_id = H5EScreate();
         /* Check for async request */
         if(req && *req)
             *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
@@ -1270,16 +1270,19 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
     H5Pset_plugin_new_api_context(xpl, TRUE);
     void *req1=NULL;
     void *req2=NULL; 
-    ret_value = H5VLdataset_write(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, req); // writing data to the cache 
+    ret_value = H5VLdataset_write(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, NULL); // writing data to the cache 
 
+    int *p=(int *)buf;
+    for (int i=0; i<10; i++)
+      p[i] = 100;
+    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req2); // writing data to the parallel file system.
     ret_value = H5VLdataset_read(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, &req1); // reading data from the cache
-
-    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req2); // writing data to the parallel file system. 
     H5VL_async_set_request_dep(req2, req1);
-    H5ESinsert_request(o->es_id, o->under_vol_id, &req2);
+    //H5ESinsert_request(o->es_id, o->under_vol_id, req2);
     H5VL_request_status_t *status;
     
-    H5VLrequest_wait(req2, o->under_vol_id, UINT64_MAX, status); 
+    H5VLrequest_wait(req2, o->under_vol_id, UINT64_MAX, status);
+    H5Pclose(xpl);
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
@@ -1444,7 +1447,7 @@ H5VL_pass_through_ext_dataset_close(void *dset, hid_t dxpl_id, void **req)
 #endif
 
     ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
-    ret_value = H5VLdataset_close(m->under_object, m->under_vol_id, dxpl_id, req);
+    ret_value = H5VLdataset_close(m->under_object, m->under_vol_id, dxpl_id, NULL);
 
     /* Check for async request */
     if(req && *req)
@@ -1714,18 +1717,22 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     hid_t fapl_id_default = H5Pcopy(fapl_id);
     //hid_t fapl_id_default = H5Pcreate(H5P_FILE_ACCESS);
     
-    unsigned int under_vol_value = H5VL_NATIVE_VALUE;
+    unsigned int under_vol_value = H5VL_ASYNC_VALUE;
     //hid_t under_vol_id = H5VLregister_connector_by_value((H5VL_class_value_t)under_vol_value, H5P_DEFAULT);
     hid_t under_vol_id = H5VLget_connector_id_by_value(under_vol_value);
     void *p = NULL;
+    const char* str = "under_vol=0;under_info={}"; 
+    H5VL_pass_through_ext_str_to_info(str, &p); 
     H5Pset_vol(fapl_id_default, under_vol_id, p);
     hid_t xpl = H5Pcreate(H5P_DATASET_XFER); 
     H5Pset_plugin_new_api_context(xpl, TRUE);
-    void *under2 = H5VLfile_create(tmp, flags, fcpl_id, fapl_id_default, xpl, req);
-
+    printf("creating file ...\n");
+    void *under2 = H5VLfile_create(tmp, flags, fcpl_id, fapl_id_default, xpl, NULL);
+    H5Pclose(xpl); 
+    printf("creating file done\n");
     if(under && under2) {
         file = H5VL_pass_through_ext_new_obj(under, info->under_vol_id);
-	file->map = H5VL_pass_through_ext_new_obj(under2, H5VL_NATIVE);
+	file->map = H5VL_pass_through_ext_new_obj(under2, under_vol_id);
         /* Check for async request */
         if(req && *req)
             *req = H5VL_pass_through_ext_new_obj(*req, info->under_vol_id);
@@ -1735,6 +1742,7 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
 
     /* Close underlying FAPL */
     H5Pclose(under_fapl_id);
+    H5Pclose(fapl_id_default);
 
     /* Release copy of our VOL info */
     H5VL_pass_through_ext_info_free(info);
@@ -2012,7 +2020,7 @@ H5VL_pass_through_ext_file_close(void *file, hid_t dxpl_id, void **req)
 #endif
 
     ret_value = H5VLfile_close(o->under_object, o->under_vol_id, dxpl_id, req);
-    ret_value = H5VLfile_close(m->under_object, m->under_vol_id, dxpl_id, req);
+    ret_value = H5VLfile_close(m->under_object, m->under_vol_id, dxpl_id, NULL);
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
@@ -2051,7 +2059,7 @@ H5VL_pass_through_ext_group_create(void *obj, const H5VL_loc_params_t *loc_param
 
     under = H5VLgroup_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, req);
     //H5Pset_plugin_new_api_context(dxpl_id, TRUE);
-    void *under2 = H5VLgroup_create(m->under_object, loc_params, m->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, req);
+    void *under2 = H5VLgroup_create(m->under_object, loc_params, m->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, NULL);
     if(under && under2) {
         group = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
 	group->map = H5VL_pass_through_ext_new_obj(under2, m->under_vol_id);
@@ -2256,7 +2264,7 @@ H5VL_pass_through_ext_group_close(void *grp, hid_t dxpl_id, void **req)
 #endif
 
     ret_value = H5VLgroup_close(o->under_object, o->under_vol_id, dxpl_id, req);
-    ret_value = H5VLgroup_close(m->under_object, m->under_vol_id, dxpl_id, req);
+    ret_value = H5VLgroup_close(m->under_object, m->under_vol_id, dxpl_id, NULL);
 
     /* Check for async request */
     if(req && *req)

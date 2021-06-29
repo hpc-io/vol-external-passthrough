@@ -23,9 +23,9 @@ ARFLAGS = rs
 DYNSRC = H5VLpassthru_ext.c
 DYNOBJ = $(DYNSRC:.c=.o)
 # Uncomment this line Linux builds:
-# DYNLIB = libh5passthrough_vol.so
+ DYNLIB = libh5passthrough_vol.so
 # Uncomment this line MacOS builds:
-DYNLIB = libh5passthrough_vol.dylib
+#DYNLIB = libh5passthrough_vol.dylib
 
 STATSRC = new_h5api.c
 STATOBJ = $(STATSRC:.c=.o)
