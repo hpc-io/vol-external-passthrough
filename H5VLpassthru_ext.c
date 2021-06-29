@@ -1261,14 +1261,11 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Write\n");
 #endif
-    hid_t xpl = H5Pcreate(H5P_DATASET_XFER);
-    //hid_t xpl = H5Pcopy(plist_id);
-    H5Pset_plugin_new_api_context(xpl, TRUE);
-    o->req=NULL; 
-    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &o->req);
-    // writing data to the parallel file system. 
-    //H5VL_async_set_request_dep(req2, req1);
-    H5ESinsert_request(o->es_id, o->under_vol_id, o->req);
+    void *req_t=NULL;
+    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req_t);
+    // writing data to the parallel file system.
+    assert(req_t !=NULL);
+    H5ESinsert_request(o->es_id, o->under_vol_id, req_t);
     
     /* Check for async request */
     if(req && *req)
@@ -1432,10 +1429,11 @@ H5VL_pass_through_ext_dataset_close(void *dset, hid_t dxpl_id, void **req)
     printf("------- EXT PASS THROUGH VOL DATASET Close\n");
 #endif
     H5VL_request_status_t *status;
-    H5VLrequest_wait(o->req, o->under_vol_id, UINT64_MAX, status); 
 
+    size_t num_inprogress;
+    hbool_t error_occured;
+    H5ESwait(o->es_id, UINT64_MAX,  &num_inprogress, &error_occured);
     ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
-
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
