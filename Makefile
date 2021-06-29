@@ -43,7 +43,7 @@ ASYNC_EXDBG = async_new_h5api_ex.exe.dSYM
 
 DATAFILE = testfile.h5
 
-all: $(EXEXE) $(ASYNC_EXEXE) $(DYNLIB) $(STATLIB) install test_dataset test_file test_group
+all: $(EXEXE) $(ASYNC_EXEXE) $(DYNLIB) $(STATLIB) install test_dataset test_file test_group test_dataset_nompi
 
 $(EXEXE): $(EXSRC) $(STATLIB) $(DYNLIB)
 	$(CC) $(CFLAGS) $^ -o $(EXEXE) $(LDFLAGS) -L. -lnew_h5api
@@ -62,6 +62,8 @@ $(STATLIB): $(STATOBJ)
 	$(AR) $(ARFLAGS) $@ $^
 test_dataset: test_dataset.o 
 	$(CC) -o test_dataset test_dataset.o $(LIBS)
+test_dataset_nompi: test_dataset_nompi.o 
+	$(CC) -o test_dataset_nompi test_dataset_nompi.o $(LIBS)
 
 test_dataset_empty: test_dataset_empty.o 
 	$(CC) -o test_dataset_empty test_dataset_empty.o -L$(HDF5_ROOT)/lib -lhdf5
@@ -76,7 +78,6 @@ test_group: test_group.o
 install: $(DYNLIB) $(STATLIB)
 	cp -v $(STATLIB) $(DYNLIB) $(HDF5_VOL_DIR)/lib
 	cp -v *.h $(HDF5_VOL_DIR)/include
-	
 
 .PHONY: clean all
 clean:
