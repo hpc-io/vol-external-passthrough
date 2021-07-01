@@ -22,10 +22,18 @@ ARFLAGS = rs
 
 DYNSRC = H5VLpassthru_ext.c
 DYNOBJ = $(DYNSRC:.c=.o)
+
+unameOut="$(uname -s)"
+ifeq (${unameOut}, "*Linux*")
+	machine=so
+else
+	machine=dylib
+endif
+
 # Uncomment this line Linux builds:
 # DYNLIB = libh5passthrough_vol.so
 # Uncomment this line MacOS builds:
-DYNLIB = libh5passthrough_vol.dylib
+DYNLIB = libh5passthrough_vol.${machine}
 
 STATSRC = new_h5api.c
 STATOBJ = $(STATSRC:.c=.o)
