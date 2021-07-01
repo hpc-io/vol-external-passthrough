@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
   hsize_t offset[2] = {0, 0};
   // setup file access property list for mpio
   hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-  H5Pset_fapl_mpio(plist_id, comm, info);
+  //H5Pset_fapl_mpio(plist_id, comm, info);
   bool p = true; 
   char f[255];
   strcpy(f, "parallel_file.h5");
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   int* data = (int*)malloc(ldims[0]*ldims[1]*sizeof(int));
   // set up dataset access property list 
   hid_t dxf_id = H5Pcreate(H5P_DATASET_XFER);
-  H5Pset_dxpl_mpio(dxf_id, H5FD_MPIO_COLLECTIVE);
+  //  H5Pset_dxpl_mpio(dxf_id, H5FD_MPIO_COLLECTIVE);
   
   hid_t filespace = H5Screate_simple(2, gdims, NULL);
   hid_t dt = H5Tcopy(H5T_NATIVE_INT);
@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   hid_t file_id = H5Fcreate(f, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
   hid_t grp_id = H5Gcreate(file_id, "group_test", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   H5Gclose(grp_id);
-  H5Fflush(file_id, H5F_SCOPE_LOCAL);
+  //H5Fflush(file_id, H5F_SCOPE_LOCAL);
   H5Fclose(file_id);
   MPI_Finalize();
   return 0;

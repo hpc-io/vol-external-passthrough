@@ -25,7 +25,7 @@ DYNOBJ = $(DYNSRC:.c=.o)
 # Uncomment this line Linux builds:
 # DYNLIB = libh5passthrough_vol.so
 # Uncomment this line MacOS builds:
-DYNLIB = libh5passthrough_vol.so
+DYNLIB = libh5passthrough_vol.dylib
 
 STATSRC = new_h5api.c
 STATOBJ = $(STATSRC:.c=.o)
@@ -74,6 +74,8 @@ test_file: test_file.o
 
 test_group: test_group.o 
 	$(CC) -o test_group test_group.o $(LIBS)
+test_group_nompi: test_group_nompi.o 
+	$(CC) -o test_group_nompi test_group_nompi.o $(LIBS)
 
 install: $(DYNLIB) $(STATLIB)
 	cp -v $(STATLIB) $(DYNLIB) $(HDF5_VOL_DIR)/lib
