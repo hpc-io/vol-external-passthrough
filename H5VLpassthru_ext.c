@@ -1723,30 +1723,24 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     strcat(tmp, "-map");
     under = H5VLfile_create(name, flags, fcpl_id, under_fapl_id, dxpl_id, req);
 
-    // get default fapl_id calling native
-    
+    // create a cache file corresponding to the file with NATIVE VOL operation
     hid_t fapl_id_default = H5Pcopy(fapl_id);
-    
-    hid_t async_vol_id = H5VLget_connector_id_by_value(H5VL_ASYNC_VALUE);
     hid_t native_vol_id = H5VLget_connector_id_by_value(H5VL_NATIVE_VALUE);
-    void *p = NULL;
-    const char* str = "under_vol=0;under_info={}"; 
-    H5VL_pass_through_ext_str_to_info(str, &p);
-    
     H5Pset_vol(fapl_id_default, native_vol_id, NULL);
-    //hid_t xpl = H5Pcreate(H5P_DATASET_XFER);
-    hid_t xpl = H5Pcopy(dxpl_id); 
+    //data transfer property list new api
+    hid_t xpl = H5Pcreate(H5P_DATASET_XFER);
     H5Pset_plugin_new_api_context(xpl, TRUE);
-    printf("creating file ...\n");
     void *under2 = H5VLfile_create(tmp, flags, fcpl_id, fapl_id_default, xpl, NULL);
-
-    printf("creating file done\n");
     if(under && under2) {
         file = H5VL_pass_through_ext_new_obj(under, info->under_vol_id);
 	file->map_native = H5VL_pass_through_ext_new_obj(under2, native_vol_id);
-
+	// open the cache file with async VOL (with NATIVE vol underneath)
+	hid_t async_vol_id = H5VLget_connector_id_by_value(H5VL_ASYNC_VALUE);
+	void *p = NULL;
+	const char* str = "under_vol=0;under_info={}"; 
+	H5VL_pass_through_ext_str_to_info(str, &p);
 	H5Pset_vol(fapl_id_default, async_vol_id, p);
-	void *under3 = H5VLfile_open(tmp, H5F_ACC_RDONLY, fapl_id_default, xpl, NULL);
+	void *under3 = H5VLfile_open(tmp, H5F_ACC_RDWR, fapl_id_default, xpl, NULL);
 	file->map_async = H5VL_pass_through_ext_new_obj(under3, async_vol_id);
 	H5Pclose(xpl); 
         /* Check for async request */
@@ -2028,6 +2022,10 @@ static herr_t
 H5VL_pass_through_ext_file_close(void *file, hid_t dxpl_id, void **req)
 {
     H5VL_pass_through_ext_t *o = (H5VL_pass_through_ext_t *)file;
+    hid_t xpl = H5Pcreate(H5P_DATASET_XFER);
+    //hid_t xpl = H5Pcopy(plist_id);
+    H5Pset_plugin_new_api_context(xpl, TRUE);
+
     H5VL_pass_through_ext_t *m = (H5VL_pass_through_ext_t *)o->map_async;
     H5VL_pass_through_ext_t *n = (H5VL_pass_through_ext_t *)o->map_native;
     herr_t ret_value;
@@ -2035,8 +2033,11 @@ H5VL_pass_through_ext_file_close(void *file, hid_t dxpl_id, void **req)
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL FILE Close\n");
 #endif
-    ret_value = H5VLfile_close(m->under_object, m->under_vol_id, dxpl_id, NULL);
-    ret_value = H5VLfile_close(n->under_object, n->under_vol_id, dxpl_id, NULL);
+    printf("closing native file\n"); 
+    ret_value = H5VLfile_close(n->under_object, n->under_vol_id, xpl, NULL);
+    printf("closing async file\n"); 
+    ret_value = H5VLfile_close(m->under_object, m->under_vol_id, xpl, NULL);
+    printf("closing ... file\n"); 
     ret_value = H5VLfile_close(o->under_object, o->under_vol_id, dxpl_id, req);
     /* Check for async request */
     if(req && *req)
@@ -2047,7 +2048,6 @@ H5VL_pass_through_ext_file_close(void *file, hid_t dxpl_id, void **req)
         H5VL_pass_through_ext_free_obj(o->map_async);
 	H5VL_pass_through_ext_free_obj(o->map_native);
         H5VL_pass_through_ext_free_obj(o);
-	
     }
 
     return ret_value;
@@ -2081,18 +2081,23 @@ H5VL_pass_through_ext_group_create(void *obj, const H5VL_loc_params_t *loc_param
 #endif
 
     under = H5VLgroup_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, req);
-    H5Pset_plugin_new_api_context(dxpl_id, TRUE);
-    void *under2 = H5VLgroup_create(n->under_object, loc_params, n->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, NULL);
+    
+    hid_t xpl = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_plugin_new_api_context(xpl, TRUE);
+
+    // create a group in the cache file using native VOL with exactly the same structure. 
+    void *under2 = H5VLgroup_create(n->under_object, loc_params, n->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, xpl, NULL);
 
     if(under && under2) {
         group = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
 	group->map_native = H5VL_pass_through_ext_new_obj(under2, n->under_vol_id);
-	group->parent = obj; 
+	group->parent = obj;
+	// open the group in the cache file using Async VOL. 
+	void *under3 = H5VLgroup_open(m->under_object, loc_params, m->under_vol_id, name, gapl_id, xpl, NULL);
+	group->map_async = H5VL_pass_through_ext_new_obj(under3, m->under_vol_id);
         /* Check for async request */
         if(req && *req)
             *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
-	void *under3 = H5VLgroup_open(m->under_object, loc_params, m->under_vol_id, name, gapl_id, dxpl_id, NULL);
-	group->map_async = H5VL_pass_through_ext_new_obj(under3, m->under_vol_id);
     } /* end if */
     else
         group = NULL;
@@ -2291,16 +2296,22 @@ H5VL_pass_through_ext_group_close(void *grp, hid_t dxpl_id, void **req)
 #endif
 
     ret_value = H5VLgroup_close(o->under_object, o->under_vol_id, dxpl_id, req);
-    ret_value = H5VLgroup_close(m->under_object, m->under_vol_id, dxpl_id, NULL);
-    ret_value = H5VLgroup_close(n->under_object, n->under_vol_id, dxpl_id, NULL);
+    hid_t xpl = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_plugin_new_api_context(xpl, TRUE);
+    
+    ret_value = H5VLgroup_close(m->under_object, m->under_vol_id, xpl, NULL);
+    ret_value = H5VLgroup_close(n->under_object, n->under_vol_id, xpl, NULL);
 
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
 
     /* Release our wrapper, if underlying file was closed */
-    if(ret_value >= 0)
+    if(ret_value >= 0) {
+        H5VL_pass_through_ext_free_obj(o->map_async);
+        H5VL_pass_through_ext_free_obj(o->map_native);
         H5VL_pass_through_ext_free_obj(o);
+    }
 
     return ret_value;
 } /* end H5VL_pass_through_ext_group_close() */

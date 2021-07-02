@@ -24,11 +24,8 @@ DYNSRC = H5VLpassthru_ext.c
 DYNOBJ = $(DYNSRC:.c=.o)
 
 unameOut="$(uname -s)"
-ifeq (${unameOut}, "*Linux*")
-	machine=so
-else
-	machine=dylib
-endif
+machine = "so"
+
 
 # Uncomment this line Linux builds:
 # DYNLIB = libh5passthrough_vol.so

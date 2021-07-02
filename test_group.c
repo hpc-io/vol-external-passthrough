@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   int* data = (int*)malloc(ldims[0]*ldims[1]*sizeof(int));
   // set up dataset access property list 
   hid_t dxf_id = H5Pcreate(H5P_DATASET_XFER);
-  //  H5Pset_dxpl_mpio(dxf_id, H5FD_MPIO_COLLECTIVE);
+  H5Pset_dxpl_mpio(dxf_id, H5FD_MPIO_COLLECTIVE);
   
   hid_t filespace = H5Screate_simple(2, gdims, NULL);
   hid_t dt = H5Tcopy(H5T_NATIVE_INT);
