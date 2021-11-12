@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
 
   hsize_t count[2] = {1, 1};
   hid_t file_id = H5Fcreate(f, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+  printf("H5Fcreate finished\n");
   H5Fclose(file_id);
   MPI_Finalize();
   return 0;

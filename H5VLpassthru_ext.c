@@ -1265,9 +1265,10 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Write\n");
 #endif
-    hid_t xpl = H5Pcreate(H5P_DATASET_XFER);
-    //hid_t xpl = H5Pcopy(plist_id);
+    hid_t xpl = H5Pcopy(plist_id);
+#ifdef USE_POST_OPEN_FIX
     H5Pset_plugin_new_api_context(xpl, TRUE);
+#endif
     void *req1=NULL;
     void *req2=NULL; 
     ret_value = H5VLdataset_write(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, NULL); // writing data to the cache 
@@ -1278,7 +1279,7 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
     ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req2); // writing data to the parallel file system.
     ret_value = H5VLdataset_read(m->under_object, m->under_vol_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, &req1); // reading data from the cache
     H5VL_async_set_request_dep(req2, req1);
-    //H5ESinsert_request(o->es_id, o->under_vol_id, req2);
+    H5ESinsert_request(o->es_id, o->under_vol_id, req2);
     H5VL_request_status_t *status;
     
     H5VLrequest_wait(req2, o->under_vol_id, UINT64_MAX, status);
@@ -1724,8 +1725,10 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     const char* str = "under_vol=0;under_info={}"; 
     H5VL_pass_through_ext_str_to_info(str, &p); 
     H5Pset_vol(fapl_id_default, under_vol_id, p);
-    hid_t xpl = H5Pcreate(H5P_DATASET_XFER); 
+    hid_t xpl = H5Pcopy(dxpl_id);
+#ifdef USE_POST_OPEN_FIX
     H5Pset_plugin_new_api_context(xpl, TRUE);
+#endif    
     printf("creating file ...\n");
     void *under2 = H5VLfile_create(tmp, flags, fcpl_id, fapl_id_default, xpl, NULL);
     H5Pclose(xpl); 
@@ -2058,7 +2061,9 @@ H5VL_pass_through_ext_group_create(void *obj, const H5VL_loc_params_t *loc_param
 #endif
 
     under = H5VLgroup_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, req);
-    //H5Pset_plugin_new_api_context(dxpl_id, TRUE);
+#ifdef USE_POST_OPEN_FIX
+    H5Pset_plugin_new_api_context(dxpl_id, TRUE);
+#endif
     void *under2 = H5VLgroup_create(m->under_object, loc_params, m->under_vol_id, name, lcpl_id, gcpl_id,  gapl_id, dxpl_id, NULL);
     if(under && under2) {
         group = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
