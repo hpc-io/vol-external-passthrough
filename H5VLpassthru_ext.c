@@ -1747,13 +1747,10 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     H5Pset_vol(under_fapl_id, info->under_vol_id, info->under_vol_info);
 
     /* Open the file with the underlying VOL connector */
-    char tmp[255];
-    strcpy(tmp, name); 
-    strcat(tmp, "-map");
     under = H5VLfile_create(name, flags, fcpl_id, under_fapl_id, dxpl_id, req);
 
 
-    // get default fapl_id calling native
+    /* copy fapl, and reset the under_vol id as async->native */
 
     hid_t fapl_id_default = H5Pcopy(fapl_id);
     hid_t async_vol_id = H5VLget_connector_id_by_value(H5VL_ASYNC_VALUE);
@@ -1763,7 +1760,10 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     H5Pset_vol(fapl_id_default, async_vol_id, p);
 
     printf("creating file ...\n");
-    file->m_id = H5Fcreate(tmp, H5F_ACC_TRUNC, fcpl_id, fapl_id_default);
+    char tmp[255];
+    strcpy(tmp, name); 
+    strcat(tmp, "-map");
+    file->m_id = H5Fcreate_async(tmp, H5F_ACC_TRUNC, fcpl_id, fapl_id_default, H5ES_NONE);
     printf("creating file done ...\n");
     if(under) {
         file = H5VL_pass_through_ext_new_obj(under, info->under_vol_id);

@@ -1,0 +1,33 @@
+name: Test hdf-spack
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout hdf-spack
+      uses: actions/checkout@v2
+      with:
+        repository: HDFGroup/hdf-spack
+        path: ./hdf-spack
+    - name: Checkout spack
+      uses: actions/checkout@v2
+      with:
+        repository: spack/spack
+        path: ./spack
+
+    - name: Run a multi-line script
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y libopenmpi-dev
+        . ./spack/share/spack/setup-env.sh
+        spack repo add ./hdf-spack
+        spack repo list
+        spack install hdf5-vol-external-passthrough
+        
