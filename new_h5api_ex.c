@@ -3,6 +3,8 @@
 #include "hdf5.h"
 #include "new_h5api.h"
 #include "H5VLcache_ext.h"
+#include "h5_async_lib.h"
+#include "h5_async_vol.h"
 #include "H5LS.h"
 #define H5FILE_NAME     "testfile.h5"
 #define GROUPNAME       "GroupA"

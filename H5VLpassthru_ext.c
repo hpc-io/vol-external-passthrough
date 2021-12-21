@@ -67,9 +67,9 @@
 typedef struct H5VL_pass_through_ext_t {
     hid_t  under_vol_id;        /* ID for underlying VOL connector */
     void   *under_object;       /* Info object for underlying VOL connector */
-    void   *parent;
-    hid_t  m_id; 
-    hid_t  es_id; 
+    void   *parent;             /* Pointer for the parent obj */
+    hid_t  m_id;                /* ID for the mirror object */
+    hid_t  es_id;               /* Event set ID */
 } H5VL_pass_through_ext_t;
 
 /* The pass through VOL wrapper context */
@@ -1164,9 +1164,9 @@ H5VL_pass_through_ext_dataset_create(void *obj, const H5VL_loc_params_t *loc_par
     under = H5VLdataset_create(o->under_object, loc_params, o->under_vol_id, name, lcpl_id, type_id, space_id, dcpl_id,  dapl_id, dxpl_id, req);
     if(under) {
         dset = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
-	dset->m_id = H5Dcreate_async(o->m_id, name, type_id, space_id, lcpl_id, dcpl_id, dapl_id, o->es_id); 
+	dset->m_id = H5Dcreate_async(o->m_id, name, type_id, space_id, lcpl_id, dcpl_id, dapl_id, H5ES_NONE); 
 	dset->parent = obj;
-	dset->es_id = o->es_id; 
+	dset->es_id = H5EScreate(); 
 
         /* Check for async request */
         if(req && *req)
@@ -1270,21 +1270,24 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
     hid_t xpl = H5Pcopy(plist_id);
     void *req1=NULL;
     void *req2=NULL;
-    H5Dwrite(o->m_id, mem_type_id, mem_space_id, file_space_id, xpl, buf);
+    H5Dwrite_async(o->m_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, H5ES_NONE);
 
-    int *p=(int *)buf;
+    int *p=(int *) buf;
     for (int i=0; i<10; i++)
       p[i] = 100;
+    
     H5Dread_async(o->m_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, o->es_id);
     void **requests;
     size_t count;
     hid_t *connector_ids;
     ret_value = H5ESget_requests(o->es_id, connector_ids, requests, &count);
+    printf("Number of request: %u\n", count); 
     req1 = requests[count-1];
     assert(req1!=NULL);
     ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req2); // writing data to the parallel file system.
     assert(req2!=NULL);
     H5VL_async_set_request_dep(req2, req1);
+    printf("Inserting request to ESID\n"); 
     H5ESinsert_request(o->es_id, o->under_vol_id, req2);
     H5VL_request_status_t *status;
     H5VLrequest_wait(req2, o->under_vol_id, UINT64_MAX, status);
@@ -1452,7 +1455,12 @@ H5VL_pass_through_ext_dataset_close(void *dset, hid_t dxpl_id, void **req)
 #endif
 
     ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
-    H5Dclose_async(o->m_id, o->es_id); 
+    H5Dclose_async(o->m_id, H5ES_NONE);
+    size_t *num_in_progress;
+    hbool_t *err_occurred; 
+    H5ESwait(o->es_id, UINT64_MAX, num_in_progress, err_occurred);
+    printf("num_in_progress: %d\n", *num_in_progress);
+    H5ESclose(o->es_id);
 
     /* Check for async request */
     if(req && *req)
@@ -1752,7 +1760,6 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
 
     /* Set the VOL ID and info for the underlying FAPL */
     H5Pset_vol(under_fapl_id, info->under_vol_id, info->under_vol_info);
-    H5Pset_plugin_new_api_context(dxpl_id, TRUE);      
     /* Open the file with the underlying VOL connector */
     under = H5VLfile_create(name, flags, fcpl_id, under_fapl_id, dxpl_id, req);
 
@@ -1767,7 +1774,6 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     // setting the vol chain async -> native
     H5Pset_vol(fapl_id_default, async_vol_id, p); 
 
-
     char tmp[255];
     strcpy(tmp, name); 
     strcat(tmp, "-map");
@@ -1777,10 +1783,7 @@ H5VL_pass_through_ext_file_create(const char *name, unsigned flags, hid_t fcpl_i
     if(under) {
         printf("creating file ...\n");
         file = H5VL_pass_through_ext_new_obj(under, info->under_vol_id);
-	file->es_id = H5EScreate();
-	file->m_id = H5Fcreate_async(tmp, H5F_ACC_TRUNC, fcpl_id, fapl_id_default, file->es_id);
-
-	//file->m_id = H5Fcreate_async(tmp, H5F_ACC_TRUNC, fcpl_id, fapl_id_default, H5ES_NONE);
+	file->m_id = H5Fcreate_async(tmp, H5F_ACC_TRUNC, fcpl_id, fapl_id_default, H5ES_NONE);
 	printf("creating file done ...\n");
         /* Check for async request */
         if(req && *req)
@@ -2067,12 +2070,8 @@ H5VL_pass_through_ext_file_close(void *file, hid_t dxpl_id, void **req)
     printf("------- EXT PASS THROUGH VOL FILE Close\n");
 #endif
     ret_value = H5VLfile_close(o->under_object, o->under_vol_id, dxpl_id, req);
-    H5Fclose_async(o->m_id, o->es_id);
-    size_t *num_in_progress;
-    hbool_t *err_occurred; 
 
-    H5ESwait(o->es_id, UINT64_MAX, num_in_progress, err_occurred);
-    H5ESclose(o->es_id);
+    H5Fclose_async(o->m_id, H5ES_NONE);
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
@@ -2112,8 +2111,7 @@ H5VL_pass_through_ext_group_create(void *obj, const H5VL_loc_params_t *loc_param
 
     if(under) {
         group = H5VL_pass_through_ext_new_obj(under, o->under_vol_id);
-	group->es_id = o->es_id; 
-	group->m_id = H5Gcreate_async(o->m_id, name, lcpl_id, gcpl_id, gapl_id, o->es_id);
+	group->m_id = H5Gcreate_async(o->m_id, name, lcpl_id, gcpl_id, gapl_id, H5ES_NONE);
 	group->parent = obj;
 
         /* Check for async request */
@@ -2315,7 +2313,7 @@ H5VL_pass_through_ext_group_close(void *grp, hid_t dxpl_id, void **req)
 #endif
 
     ret_value = H5VLgroup_close(o->under_object, o->under_vol_id, dxpl_id, req);
-    H5Gclose_async(o->m_id, o->es_id); 
+    H5Gclose_async(o->m_id, H5ES_NONE); 
 
     /* Check for async request */
     if(req && *req)

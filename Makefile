@@ -14,7 +14,7 @@ INCLUDES=-I$(HDF5_DIR)/include -I$(HDF5_VOL_DIR)//include
 CFLAGS = $(DEBUG) -fPIC $(INCLUDES) -Wall
 #LIBS=-L$(HDF5_DIR)/lib -L$(MPI_DIR)/lib -lhdf5 -lz
 
-LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz -L$(HDF5_VOL_DIR)/lib -lh5async
+LIBS=-L$(HDF5_DIR)/lib -lhdf5 -lz -L$(HDF5_VOL_DIR)/lib -lh5async -lasynchdf5
 DYNLDFLAGS = $(DEBUG) -fPIC -shared $(LIBS)
 #DYNLDFLAGS = $(DEBUG) -shared  -fPIC $(LIBS)
 LDFLAGS = $(DEBUG) $(LIBS)
@@ -43,7 +43,7 @@ ASYNC_EXDBG = async_new_h5api_ex.exe.dSYM
 
 DATAFILE = testfile.h5
 
-all: $(EXEXE) $(ASYNC_EXEXE) $(DYNLIB) $(STATLIB) install test_dataset test_file test_group test_dataset_write
+all: $(EXEXE) $(ASYNC_EXEXE) $(DYNLIB) $(STATLIB) install test_dataset test_file test_group test_dataset_write test_dataset
 
 $(EXEXE): $(EXSRC) $(STATLIB) $(DYNLIB)
 	$(CC) $(CFLAGS) $^ -o $(EXEXE) $(LDFLAGS) -L. -lnew_h5api
