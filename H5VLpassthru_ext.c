@@ -195,8 +195,7 @@ static herr_t H5VL_pass_through_ext_token_from_str(void *obj, H5I_type_t obj_typ
 static herr_t H5VL_pass_through_ext_optional(void *obj, H5VL_optional_args_t *args, hid_t dxpl_id, void **req);
 
 
-// New API context
-herr_t H5Pset_plugin_new_api_context(hid_t plist_id, hbool_t new_api_ctx);
+//herr_t H5Pset_plugin_new_api_context(hid_t plist_id, hbool_t new_api_ctx);
 
 /*******************/
 /* Local variables */
@@ -1267,10 +1266,9 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Write\n");
 #endif
-    hid_t xpl = H5Pcopy(plist_id);
     void *req1=NULL;
     void *req2=NULL;
-    H5Dwrite_async(o->m_id, mem_type_id, mem_space_id, file_space_id, xpl, buf, H5ES_NONE);
+    H5Dwrite_async(o->m_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, H5ES_NONE);
 
     int *p=(int *) buf;
     for (int i=0; i<10; i++)
@@ -1291,7 +1289,6 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
     H5ESinsert_request(o->es_id, o->under_vol_id, req2);
     H5VL_request_status_t *status;
     H5VLrequest_wait(req2, o->under_vol_id, UINT64_MAX, status);
-    H5Pclose(xpl);
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
@@ -1455,13 +1452,12 @@ H5VL_pass_through_ext_dataset_close(void *dset, hid_t dxpl_id, void **req)
 #endif
 
     ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
-    H5Dclose_async(o->m_id, H5ES_NONE);
     size_t *num_in_progress;
     hbool_t *err_occurred; 
     H5ESwait(o->es_id, UINT64_MAX, num_in_progress, err_occurred);
-    printf("num_in_progress: %d\n", *num_in_progress);
+    printf("num_in_progress: %ld\n", *num_in_progress);
     H5ESclose(o->es_id);
-
+    H5Dclose_async(o->m_id, H5ES_NONE);
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
