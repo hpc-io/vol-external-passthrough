@@ -1450,13 +1450,12 @@ H5VL_pass_through_ext_dataset_close(void *dset, hid_t dxpl_id, void **req)
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Close\n");
 #endif
-
-    ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
     size_t *num_in_progress;
     hbool_t *err_occurred; 
     H5ESwait(o->es_id, UINT64_MAX, num_in_progress, err_occurred);
     printf("num_in_progress: %ld\n", *num_in_progress);
     H5ESclose(o->es_id);
+    ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
     H5Dclose_async(o->m_id, H5ES_NONE);
     /* Check for async request */
     if(req && *req)
