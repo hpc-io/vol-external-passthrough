@@ -1275,20 +1275,16 @@ H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_spa
       p[i] = 100;
     
     H5Dread_async(o->m_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, o->es_id);
-    void **requests;
-    size_t count;
-    hid_t *connector_ids;
-    ret_value = H5ESget_requests(o->es_id, connector_ids, requests, &count);
-    printf("Number of request: %u\n", count); 
-    req1 = requests[count-1];
+    size_t count=1;
+    ret_value = H5ESget_requests(o->es_id, H5_ITER_DEC, NULL, &req1, &count);
     assert(req1!=NULL);
     ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, &req2); // writing data to the parallel file system.
     assert(req2!=NULL);
     H5VL_async_set_request_dep(req2, req1);
     printf("Inserting request to ESID\n"); 
     H5ESinsert_request(o->es_id, o->under_vol_id, req2);
-    H5VL_request_status_t *status;
-    H5VLrequest_wait(req2, o->under_vol_id, UINT64_MAX, status);
+    H5VL_request_status_t status;
+    H5VLrequest_wait(req2, o->under_vol_id, UINT64_MAX, &status);
     /* Check for async request */
     if(req && *req)
         *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
@@ -1450,10 +1446,10 @@ H5VL_pass_through_ext_dataset_close(void *dset, hid_t dxpl_id, void **req)
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Close\n");
 #endif
-    size_t *num_in_progress;
-    hbool_t *err_occurred; 
-    H5ESwait(o->es_id, UINT64_MAX, num_in_progress, err_occurred);
-    printf("num_in_progress: %ld\n", *num_in_progress);
+    size_t num_in_progress;
+    hbool_t err_occurred; 
+    H5ESwait(o->es_id, UINT64_MAX, &num_in_progress, &err_occurred);
+    printf("num_in_progress: %ld\n", num_in_progress);
     H5ESclose(o->es_id);
     ret_value = H5VLdataset_close(o->under_object, o->under_vol_id, dxpl_id, req);
     H5Dclose_async(o->m_id, H5ES_NONE);
