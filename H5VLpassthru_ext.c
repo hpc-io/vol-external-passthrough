@@ -62,10 +62,10 @@
 /* Typedefs */
 /************/
 
-/* The pass through VOL info object */
+/* The pass through VOL connector's object */
 typedef struct H5VL_pass_through_ext_t {
     hid_t  under_vol_id;        /* ID for underlying VOL connector */
-    void   *under_object;       /* Info object for underlying VOL connector */
+    void   *under_object;       /* Underlying VOL connector's object */
 } H5VL_pass_through_ext_t;
 
 /* The pass through VOL wrapper context */
@@ -116,9 +116,12 @@ static herr_t H5VL_pass_through_ext_attr_close(void *attr, hid_t dxpl_id, void *
 /* Dataset callbacks */
 static void *H5VL_pass_through_ext_dataset_create(void *obj, const H5VL_loc_params_t *loc_params, const char *name, hid_t lcpl_id, hid_t type_id, hid_t space_id, hid_t dcpl_id, hid_t dapl_id, hid_t dxpl_id, void **req);
 static void *H5VL_pass_through_ext_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, const char *name, hid_t dapl_id, hid_t dxpl_id, void **req);
-static herr_t H5VL_pass_through_ext_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id,
-                                    hid_t file_space_id, hid_t plist_id, void *buf, void **req);
-static herr_t H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, const void *buf, void **req);
+static herr_t H5VL_pass_through_ext_dataset_read(size_t count, void *dset[],
+        hid_t mem_type_id[], hid_t mem_space_id[], hid_t file_space_id[],
+        hid_t plist_id, void *buf[], void **req);
+static herr_t H5VL_pass_through_ext_dataset_write(size_t count, void *dset[],
+        hid_t mem_type_id[], hid_t mem_space_id[], hid_t file_space_id[],
+        hid_t plist_id, const void *buf[], void **req);
 static herr_t H5VL_pass_through_ext_dataset_get(void *dset, H5VL_dataset_get_args_t *args, hid_t dxpl_id, void **req);
 static herr_t H5VL_pass_through_ext_dataset_specific(void *obj, H5VL_dataset_specific_args_t *args, hid_t dxpl_id, void **req);
 static herr_t H5VL_pass_through_ext_dataset_optional(void *obj, H5VL_optional_args_t *args, hid_t dxpl_id, void **req);
@@ -165,7 +168,7 @@ static herr_t H5VL_pass_through_ext_object_optional(void *obj, const H5VL_loc_pa
 
 /* Container/connector introspection callbacks */
 static herr_t H5VL_pass_through_ext_introspect_get_conn_cls(void *obj, H5VL_get_conn_lvl_t lvl, const H5VL_class_t **conn_cls);
-static herr_t H5VL_pass_through_ext_introspect_get_cap_flags(const void *info, unsigned *cap_flags);
+static herr_t H5VL_pass_through_ext_introspect_get_cap_flags(const void *info, uint64_t *cap_flags);
 static herr_t H5VL_pass_through_ext_introspect_opt_query(void *obj, H5VL_subclass_t cls, int op_type, uint64_t *flags);
 
 /* Async request callbacks */
@@ -647,6 +650,10 @@ H5VL_pass_through_ext_info_to_str(const void *_info, char **str)
      * as we can, we're using sprintf() instead.
      */
     sprintf(*str, "under_vol=%u;under_info={%s}", (unsigned)under_value, (under_vol_string ? under_vol_string : ""));
+
+    /* Release under VOL info string, if there is one */
+    if(under_vol_string)
+        H5free_memory(under_vol_string);
 
     return 0;
 } /* end H5VL_pass_through_ext_info_to_str() */
@@ -1215,21 +1222,30 @@ H5VL_pass_through_ext_dataset_open(void *obj, const H5VL_loc_params_t *loc_param
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5VL_pass_through_ext_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id,
-    hid_t file_space_id, hid_t plist_id, void *buf, void **req)
+H5VL_pass_through_ext_dataset_read(size_t count, void *dset[],
+    hid_t mem_type_id[], hid_t mem_space_id[],
+    hid_t file_space_id[], hid_t plist_id, void *buf[], void **req)
 {
-    H5VL_pass_through_ext_t *o = (H5VL_pass_through_ext_t *)dset;
+    void *o_arr[count];   /* Array of under objects */
+    hid_t under_vol_id;                     /* VOL ID for all objects */
     herr_t ret_value;
 
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Read\n");
 #endif
 
-    ret_value = H5VLdataset_read(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+    /* Populate the array of under objects */
+    under_vol_id = ((H5VL_pass_through_ext_t *)(dset[0]))->under_vol_id;
+    for(size_t u = 0; u < count; u++) {
+        o_arr[u] = ((H5VL_pass_through_ext_t *)(dset[u]))->under_object;
+        assert(under_vol_id == ((H5VL_pass_through_ext_t *)(dset[u]))->under_vol_id);
+    }
+
+    ret_value = H5VLdataset_read(count, o_arr, under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
 
     /* Check for async request */
     if(req && *req)
-        *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
+        *req = H5VL_pass_through_ext_new_obj(*req, under_vol_id);
 
     return ret_value;
 } /* end H5VL_pass_through_ext_dataset_read() */
@@ -1246,21 +1262,30 @@ H5VL_pass_through_ext_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_spac
  *-------------------------------------------------------------------------
  */
 static herr_t
-H5VL_pass_through_ext_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_id,
-    hid_t file_space_id, hid_t plist_id, const void *buf, void **req)
+H5VL_pass_through_ext_dataset_write(size_t count, void *dset[],
+    hid_t mem_type_id[], hid_t mem_space_id[],
+    hid_t file_space_id[], hid_t plist_id, const void *buf[], void **req)
 {
-    H5VL_pass_through_ext_t *o = (H5VL_pass_through_ext_t *)dset;
+    void *o_arr[count];   /* Array of under objects */
+    hid_t under_vol_id;                     /* VOL ID for all objects */
     herr_t ret_value;
 
 #ifdef ENABLE_EXT_PASSTHRU_LOGGING
     printf("------- EXT PASS THROUGH VOL DATASET Write\n");
 #endif
 
-    ret_value = H5VLdataset_write(o->under_object, o->under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
+    /* Populate the array of under objects */
+    under_vol_id = ((H5VL_pass_through_ext_t *)(dset[0]))->under_vol_id;
+    for(size_t u = 0; u < count; u++) {
+        o_arr[u] = ((H5VL_pass_through_ext_t *)(dset[u]))->under_object;
+        assert(under_vol_id == ((H5VL_pass_through_ext_t *)(dset[u]))->under_vol_id);
+    }
+
+    ret_value = H5VLdataset_write(count, o_arr, under_vol_id, mem_type_id, mem_space_id, file_space_id, plist_id, buf, req);
 
     /* Check for async request */
     if(req && *req)
-        *req = H5VL_pass_through_ext_new_obj(*req, o->under_vol_id);
+        *req = H5VL_pass_through_ext_new_obj(*req, under_vol_id);
 
     return ret_value;
 } /* end H5VL_pass_through_ext_dataset_write() */
@@ -2680,7 +2705,7 @@ H5VL_pass_through_ext_introspect_get_conn_cls(void *obj, H5VL_get_conn_lvl_t lvl
  *-------------------------------------------------------------------------
  */
 herr_t
-H5VL_pass_through_ext_introspect_get_cap_flags(const void *_info, unsigned *cap_flags)
+H5VL_pass_through_ext_introspect_get_cap_flags(const void *_info, uint64_t *cap_flags)
 {
     const H5VL_pass_through_ext_info_t *info = (const H5VL_pass_through_ext_info_t *)_info;
     herr_t                          ret_value;
