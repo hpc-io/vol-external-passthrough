@@ -22,16 +22,17 @@ set(HDF5_VOL_PASSTHROUGH_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/H5VLpassthru_ext.c)
 
 find_package(HDF5)
-include_directories(SYSTEM ${HDF5_INCLUDE_PATH})
+if (NOT HDF5_FOUND)
+  message (FATAL_ERROR "HDF5 was not found on the system")
+endif ()
 
 add_library(hdf5_vol_passthrough SHARED ${HDF5_VOL_PASSTHROUGH_SRCS})
-message('${HDF5_INCLUDE_PATH}')
 target_include_directories(hdf5_vol_passthrough 
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-  PUBLIC ${HDF5_INCLUDE_PATH}
+  PUBLIC "${HDF5_INCLUDE_DIRS}"
 )
 
-target_link_libraries(hdf5_vol_passthrough PRIVATE ${LINK_LIBS})
+target_link_libraries(hdf5_vol_passthrough PRIVATE "${HDF5_LIBRARIES}")
 
 install(
   FILES
